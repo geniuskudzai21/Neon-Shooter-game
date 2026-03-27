@@ -114,12 +114,70 @@ function playSound(type) {
             break;
             
         case 'targetHit':
-            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.15);
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.15);
+            // Explosion sound with multiple layers
+            const explosionSize = audioContext.sampleRate * 0.4;
+            const explosionBuffer = audioContext.createBuffer(1, explosionSize, audioContext.sampleRate);
+            const explosionData = explosionBuffer.getChannelData(0);
+            
+            for (let i = 0; i < explosionSize; i++) {
+                const t = i / explosionSize;
+                explosionData[i] = (Math.random() - 0.5) * 2 * Math.exp(-t * 8) * (1 - t * 0.5);
+            }
+            
+            const explosionNoise = audioContext.createBufferSource();
+            explosionNoise.buffer = explosionBuffer;
+            
+            const explosionFilter = audioContext.createBiquadFilter();
+            explosionFilter.type = 'lowpass';
+            explosionFilter.frequency.setValueAtTime(3000, audioContext.currentTime);
+            explosionFilter.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+            
+            const explosionGain = audioContext.createGain();
+            explosionGain.gain.setValueAtTime(0.6, audioContext.currentTime);
+            explosionGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+            
+            explosionNoise.connect(explosionFilter);
+            explosionFilter.connect(explosionGain);
+            explosionGain.connect(audioContext.destination);
+            explosionNoise.start(audioContext.currentTime);
+            
+            // Low frequency boom
+            const boom = audioContext.createOscillator();
+            const boomGain = audioContext.createGain();
+            
+            boom.type = 'sine';
+            boom.frequency.setValueAtTime(60, audioContext.currentTime);
+            boom.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + 0.25);
+            
+            boomGain.gain.setValueAtTime(0.8, audioContext.currentTime);
+            boomGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.35);
+            
+            boom.connect(boomGain);
+            boomGain.connect(audioContext.destination);
+            boom.start(audioContext.currentTime);
+            boom.stop(audioContext.currentTime + 0.35);
+            
+            // High frequency crackle
+            const crackle = audioContext.createOscillator();
+            const crackleGain = audioContext.createGain();
+            const crackleFilter = audioContext.createBiquadFilter();
+            
+            crackle.type = 'square';
+            crackle.frequency.setValueAtTime(500, audioContext.currentTime);
+            crackle.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.15);
+            
+            crackleFilter.type = 'highpass';
+            crackleFilter.frequency.setValueAtTime(800, audioContext.currentTime);
+            crackleFilter.Q.setValueAtTime(3, audioContext.currentTime);
+            
+            crackleGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+            crackleGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            crackle.connect(crackleFilter);
+            crackleFilter.connect(crackleGain);
+            crackleGain.connect(audioContext.destination);
+            crackle.start(audioContext.currentTime);
+            crackle.stop(audioContext.currentTime + 0.2);
             break;
             
         case 'targetMiss':
