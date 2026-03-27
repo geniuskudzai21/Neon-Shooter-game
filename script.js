@@ -1388,16 +1388,8 @@ window.addEventListener('resize', () => {
 window.addEventListener('load', () => {
     detectMobile();
     if (isMobile) {
-        // Setup mobile play button
-        document.getElementById('mobilePlayBtn').addEventListener('click', () => {
-            playSound('click');
-            // Hide mobile message and show game
-            document.getElementById('mobileMessage').classList.add('hidden');
-            document.getElementById('gameCanvas').style.display = 'block';
-            setupTouchControls();
-            startGame();
-        });
-        document.getElementById('instructions').textContent = 'Experience Neon Shooter on mobile! 📱';
+        // Don't allow play on mobile - show message only
+        document.getElementById('instructions').textContent = 'Mobile version coming soon! 📱';
     } else {
         setupTouchControls();
         document.getElementById('instructions').textContent = 'WASD/Arrows to move • Mouse to aim • Click to shoot';

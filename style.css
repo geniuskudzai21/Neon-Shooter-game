@@ -354,19 +354,23 @@ button:hover {
     .mobile-message {
         display: flex;
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.9);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform: none;
+        background: rgba(0, 0, 0, 0.95);
         color: #00ffff;
-        padding: 30px;
-        border-radius: 10px;
+        padding: 40px;
         text-align: center;
-        font-size: 18px;
+        font-size: 24px;
         font-weight: bold;
-        text-shadow: 0 0 20px #00ffff;
-        border: 2px solid #00ffff;
+        text-shadow: 0 0 30px #00ffff;
+        border: none;
         z-index: 20;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
     
     .score-display, .health-display, .high-score-display, .level-display {
