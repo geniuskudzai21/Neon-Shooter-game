@@ -20,12 +20,88 @@ function playSound(type) {
     
     switch(type) {
         case 'shoot':
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
+            // Layer 1: Initial sharp crack
+            const crack = audioContext.createOscillator();
+            const crackGain = audioContext.createGain();
+            const crackFilter = audioContext.createBiquadFilter();
+            
+            crack.type = 'sawtooth';
+            crack.frequency.setValueAtTime(3000, audioContext.currentTime);
+            crack.frequency.exponentialRampToValueAtTime(500, audioContext.currentTime + 0.03);
+            
+            crackFilter.type = 'highpass';
+            crackFilter.frequency.setValueAtTime(1000, audioContext.currentTime);
+            crackFilter.Q.setValueAtTime(5, audioContext.currentTime);
+            
+            crackGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+            crackGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+            
+            crack.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(audioContext.destination);
+            crack.start(audioContext.currentTime);
+            crack.stop(audioContext.currentTime + 0.05);
+            
+            // Layer 2: Low frequency thud
+            const thud = audioContext.createOscillator();
+            const thudGain = audioContext.createGain();
+            
+            thud.type = 'sine';
+            thud.frequency.setValueAtTime(80, audioContext.currentTime);
+            thud.frequency.exponentialRampToValueAtTime(40, audioContext.currentTime + 0.1);
+            
+            thudGain.gain.setValueAtTime(0.6, audioContext.currentTime);
+            thudGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            
+            thud.connect(thudGain);
+            thudGain.connect(audioContext.destination);
+            thud.start(audioContext.currentTime);
+            thud.stop(audioContext.currentTime + 0.15);
+            
+            // Layer 3: Noise burst for muzzle blast
+            const noiseSize = audioContext.sampleRate * 0.08;
+            const noiseBuffer = audioContext.createBuffer(1, noiseSize, audioContext.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            
+            for (let i = 0; i < noiseSize; i++) {
+                noiseData[i] = (Math.random() - 0.5) * 2 * Math.exp(-i * 0.02);
+            }
+            
+            const noise = audioContext.createBufferSource();
+            noise.buffer = noiseBuffer;
+            
+            const noiseFilter = audioContext.createBiquadFilter();
+            noiseFilter.type = 'bandpass';
+            noiseFilter.frequency.setValueAtTime(1500, audioContext.currentTime);
+            noiseFilter.frequency.exponentialRampToValueAtTime(300, audioContext.currentTime + 0.06);
+            noiseFilter.Q.setValueAtTime(2, audioContext.currentTime);
+            
+            const noiseGain = audioContext.createGain();
+            noiseGain.gain.setValueAtTime(0.5, audioContext.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+            
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(audioContext.destination);
+            noise.start(audioContext.currentTime);
+            
+            // Layer 4: Echo effect
+            const echoDelay = audioContext.createDelay(0.3);
+            const echoGain = audioContext.createGain();
+            const echoFilter = audioContext.createBiquadFilter();
+            
+            echoDelay.delayTime.setValueAtTime(0.15, audioContext.currentTime);
+            echoGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+            echoGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            echoFilter.type = 'lowpass';
+            echoFilter.frequency.setValueAtTime(800, audioContext.currentTime);
+            
+            crack.connect(echoDelay);
+            echoDelay.connect(echoFilter);
+            echoFilter.connect(echoGain);
+            echoGain.connect(audioContext.destination);
+            
             break;
             
         case 'hit':
@@ -506,6 +582,7 @@ function handleMovement() {
 function checkCollisions() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         const bullet = bullets[i];
+        let hit = false;
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
             const dx = bullet.x - enemy.x;
@@ -513,6 +590,7 @@ function checkCollisions() {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance < bullet.radius + enemy.radius) {
+                playSound('targetHit');
                 if (enemy.takeDamage(bullet.damage)) {
                     enemies.splice(j, 1);
                     enemiesDefeated++;
@@ -520,6 +598,7 @@ function checkCollisions() {
                     checkLevelUp();
                 }
                 bullets.splice(i, 1);
+                hit = true;
                 break;
             }
         }
@@ -742,6 +821,7 @@ function gameLoop() {
             bullets[i].draw();
             
             if (bullets[i].isOffScreen()) {
+                playSound('targetMiss');
                 bullets.splice(i, 1);
             }
         }
