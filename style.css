@@ -314,7 +314,143 @@ button:hover {
 }
 
 .settings-buttons button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px rgba(255, 0, 255, 0.8);
-    text-shadow: 0 0 10px #fff;
+    transform: translateY(-2px);
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 768px) {
+    body {
+        cursor: default;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    .controls {
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        flex-direction: row;
+        gap: 5px;
+    }
+    
+    .control-btn {
+        font-size: 10px;
+        padding: 8px 12px;
+        min-width: 60px;
+    }
+    
+    .score-display, .health-display, .high-score-display, .level-display {
+        font-size: 12px;
+        top: 10px;
+        left: 10px;
+    }
+    
+    .health-display {
+        top: 30px;
+    }
+    
+    .high-score-display {
+        top: 50px;
+    }
+    
+    .level-display {
+        top: 70px;
+    }
+    
+    .settings-modal .settings-content {
+        width: 90%;
+        max-width: 400px;
+        padding: 15px;
+    }
+    
+    .settings-content h2 {
+        font-size: 20px;
+    }
+    
+    .setting-group label {
+        font-size: 12px;
+    }
+    
+    .setting-group input[type="range"] {
+        height: 6px;
+    }
+    
+    .setting-group input[type="range"]::-webkit-slider-thumb {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .settings-buttons button {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .controls {
+        bottom: 5px;
+        gap: 3px;
+    }
+    
+    .control-btn {
+        font-size: 9px;
+        padding: 6px 10px;
+        min-width: 50px;
+    }
+    
+    .score-display, .health-display, .high-score-display, .level-display {
+        font-size: 10px;
+    }
+    
+    .settings-modal .settings-content {
+        width: 95%;
+        padding: 10px;
+    }
+    
+    .settings-content h2 {
+        font-size: 18px;
+    }
+}
+
+/* Touch controls */
+.touch-control {
+    position: absolute;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 50%;
+    pointer-events: auto;
+    z-index: 15;
+}
+
+.touch-control.active {
+    background: rgba(0, 255, 255, 0.3);
+    border-color: rgba(0, 255, 255, 0.6);
+}
+
+#moveControl {
+    width: 120px;
+    height: 120px;
+    bottom: 80px;
+    left: 20px;
+}
+
+#shootControl {
+    width: 80px;
+    height: 80px;
+    bottom: 100px;
+    right: 20px;
+    background: rgba(255, 0, 0, 0.1);
+    border-color: rgba(255, 0, 0, 0.3);
+}
+
+#shootControl.active {
+    background: rgba(255, 0, 0, 0.3);
+    border-color: rgba(255, 0, 0, 0.6);
+}
+
+@media (min-width: 769px) {
+    .touch-control {
+        display: none;
+    }
 }

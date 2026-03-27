@@ -220,8 +220,6 @@ function playSound(type) {
 }
 
 // Music system functions - disabled
-let musicCurrentVolume = 0.3;
-
 function startBackgroundMusic() { return; }
 function stopBackgroundMusic() { return; }
 function updateMusicVolume() { return; }
@@ -278,7 +276,6 @@ function resetSettings() {
     document.getElementById('musicEnabled').checked = true;
     
     saveSettings();
-    updateMusicVolume();
 }
 
 let gameRunning = false;
@@ -294,6 +291,13 @@ let backgroundOffset = 0;
 let levelProgress = 0;
 let enemiesDefeated = 0;
 let lastMoveSoundTime = 0;
+
+// Touch control variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchActive = false;
+let shootTouchActive = false;
+let isMobile = false;
 
 // Audio settings
 let masterVolume = 0.5;
@@ -642,9 +646,116 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-    if (gameRunning) {
+    if (gameRunning && !isMobile) {
         shoot();
     }
+});
+
+// Mobile detection
+function detectMobile() {
+    isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+               window.innerWidth <= 768;
+}
+
+// Touch control event listeners
+function setupTouchControls() {
+    const moveControl = document.getElementById('moveControl');
+    const shootControl = document.getElementById('shootControl');
+    
+    // Move control
+    moveControl.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        touchActive = true;
+        const touch = e.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        moveControl.classList.add('active');
+    });
+    
+    moveControl.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!touchActive || !gameRunning || gamePaused) return;
+        
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - touchStartX;
+        const deltaY = touch.clientY - touchStartY;
+        
+        // Move player based on touch drag
+        player.x += deltaX * 0.5;
+        player.y += deltaY * 0.5;
+        
+        // Keep player in bounds
+        player.x = Math.max(player.radius, Math.min(CANVAS_WIDTH - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(CANVAS_HEIGHT - player.radius, player.y));
+        
+        // Update mouse position for shooting direction
+        mouseX = player.x + deltaX * 2;
+        mouseY = player.y + deltaY * 2;
+        
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    });
+    
+    moveControl.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchActive = false;
+        moveControl.classList.remove('active');
+    });
+    
+    // Shoot control
+    shootControl.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (!gameRunning || gamePaused) return;
+        shootTouchActive = true;
+        shootControl.classList.add('active');
+        shoot();
+    });
+    
+    shootControl.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        shootTouchActive = false;
+        shootControl.classList.remove('active');
+    });
+    
+    // Auto-shoot while holding shoot button
+    setInterval(() => {
+        if (shootTouchActive && gameRunning && !gamePaused) {
+            shoot();
+        }
+    }, 200);
+}
+
+// Canvas touch events for direct control
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!gameRunning || gamePaused) return;
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Update mouse position for shooting direction
+    mouseX = touchX * (CANVAS_WIDTH / rect.width);
+    mouseY = touchY * (CANVAS_HEIGHT / rect.height);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!gameRunning || gamePaused) return;
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Update mouse position for shooting direction
+    mouseX = touchX * (CANVAS_WIDTH / rect.width);
+    mouseY = touchY * (CANVAS_HEIGHT / rect.height);
+});
+
+canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
 });
 
 function shoot() {
@@ -1021,6 +1132,12 @@ function startGame() {
     enemiesDefeated = 0;
     currentWeapon = WEAPONS.BASIC;
     
+    // Initialize mobile detection and touch controls
+    detectMobile();
+    if (isMobile) {
+        setupTouchControls();
+    }
+    
     player = new Player();
     bullets = [];
     enemies = [];
@@ -1029,18 +1146,14 @@ function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     
-    // Load settings and start music
+    // Load settings
     loadSettings();
-    if (musicEnabled) {
-        startBackgroundMusic();
-    }
     
     gameLoop();
 }
 
 function gameOver() {
     gameRunning = false;
-    stopBackgroundMusic();
     
     if (score > highScore) {
         highScore = score;
@@ -1073,7 +1186,6 @@ document.getElementById('autoPlayBtn').addEventListener('click', () => {
 });
 document.getElementById('settingsBtn').addEventListener('click', () => {
     playSound('click');
-    stopBackgroundMusic();
     if (gameRunning && !gamePaused) {
         togglePause();
     }
@@ -1083,9 +1195,6 @@ document.getElementById('closeSettings').addEventListener('click', () => {
     playSound('click');
     document.getElementById('settingsModal').classList.add('hidden');
     saveSettings();
-    if (gameRunning && !gamePaused && musicEnabled) {
-        startBackgroundMusic();
-    }
 });
 document.getElementById('resetSettings').addEventListener('click', () => {
     playSound('click');
@@ -1096,7 +1205,6 @@ document.getElementById('resetSettings').addEventListener('click', () => {
 document.getElementById('masterVolume').addEventListener('input', (e) => {
     masterVolume = e.target.value / 100;
     document.getElementById('masterVolumeValue').textContent = e.target.value + '%';
-    updateMusicVolume();
 });
 
 document.getElementById('sfxVolume').addEventListener('input', (e) => {
@@ -1107,7 +1215,6 @@ document.getElementById('sfxVolume').addEventListener('input', (e) => {
 document.getElementById('musicVolume').addEventListener('input', (e) => {
     musicVolume = e.target.value / 100;
     document.getElementById('musicVolumeValue').textContent = e.target.value + '%';
-    updateMusicVolume();
 });
 
 document.getElementById('soundEnabled').addEventListener('change', (e) => {
@@ -1116,11 +1223,6 @@ document.getElementById('soundEnabled').addEventListener('change', (e) => {
 
 document.getElementById('musicEnabled').addEventListener('change', (e) => {
     musicEnabled = e.target.checked;
-    if (musicEnabled) {
-        startBackgroundMusic();
-    } else {
-        stopBackgroundMusic();
-    }
 });
 
 // Also initialize audio on any click to ensure it's active
@@ -1133,6 +1235,16 @@ document.addEventListener('click', () => {
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    
+    // Update canvas dimensions for responsive gameplay
+    if (window.innerWidth < 768) {
+        // Mobile - adjust game area
+        const scale = Math.min(window.innerWidth / CANVAS_WIDTH, window.innerHeight / CANVAS_HEIGHT);
+        // Keep original game logic but scale display
+    }
+    
+    // Re-detect mobile on resize
+    detectMobile();
 });
 
 document.getElementById('highScore').textContent = highScore;
