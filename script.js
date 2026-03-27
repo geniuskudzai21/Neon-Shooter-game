@@ -226,10 +226,46 @@ function playSound(type) {
     }
 }
 
-// Music system functions - disabled
-function startBackgroundMusic() { return; }
-function stopBackgroundMusic() { return; }
-function updateMusicVolume() { return; }
+// Music system functions - MP3 background music
+let backgroundMusic = null;
+let musicAudioElement = null;
+
+function startBackgroundMusic() {
+    if (!musicEnabled || musicAudioElement) return;
+    
+    // Create audio element for MP3
+    musicAudioElement = new Audio('openmindaudio-cartoon-background-music-modern-path-short-preview-short-preview-497396.mp3');
+    musicAudioElement.loop = true;
+    musicAudioElement.volume = musicVolume * masterVolume * 0.3; // Lower volume for background music
+    
+    // Handle audio loading and playback
+    musicAudioElement.addEventListener('canplaythrough', () => {
+        musicAudioElement.play().catch(error => {
+            console.log('Music autoplay prevented:', error);
+        });
+    });
+    
+    musicAudioElement.addEventListener('error', (error) => {
+        console.log('Music loading error:', error);
+    });
+    
+    // Start loading
+    musicAudioElement.load();
+}
+
+function stopBackgroundMusic() {
+    if (musicAudioElement) {
+        musicAudioElement.pause();
+        musicAudioElement.currentTime = 0;
+        musicAudioElement = null;
+    }
+}
+
+function updateMusicVolume() {
+    if (musicAudioElement) {
+        musicAudioElement.volume = musicVolume * masterVolume * 0.3;
+    }
+}
 
 // Settings management
 function loadSettings() {
@@ -283,6 +319,7 @@ function resetSettings() {
     document.getElementById('musicEnabled').checked = true;
     
     saveSettings();
+    updateMusicVolume();
 }
 
 let gameRunning = false;
@@ -1184,14 +1221,18 @@ function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     
-    // Load settings
+    // Load settings and start music
     loadSettings();
+    if (musicEnabled) {
+        startBackgroundMusic();
+    }
     
     gameLoop();
 }
 
 function gameOver() {
     gameRunning = false;
+    stopBackgroundMusic();
     
     if (score > highScore) {
         highScore = score;
@@ -1243,6 +1284,7 @@ document.getElementById('resetSettings').addEventListener('click', () => {
 document.getElementById('masterVolume').addEventListener('input', (e) => {
     masterVolume = e.target.value / 100;
     document.getElementById('masterVolumeValue').textContent = e.target.value + '%';
+    updateMusicVolume();
 });
 
 document.getElementById('sfxVolume').addEventListener('input', (e) => {
@@ -1253,6 +1295,7 @@ document.getElementById('sfxVolume').addEventListener('input', (e) => {
 document.getElementById('musicVolume').addEventListener('input', (e) => {
     musicVolume = e.target.value / 100;
     document.getElementById('musicVolumeValue').textContent = e.target.value + '%';
+    updateMusicVolume();
 });
 
 document.getElementById('soundEnabled').addEventListener('change', (e) => {
@@ -1261,6 +1304,11 @@ document.getElementById('soundEnabled').addEventListener('change', (e) => {
 
 document.getElementById('musicEnabled').addEventListener('change', (e) => {
     musicEnabled = e.target.checked;
+    if (musicEnabled) {
+        startBackgroundMusic();
+    } else {
+        stopBackgroundMusic();
+    }
 });
 
 // Also initialize audio on any click to ensure it's active
