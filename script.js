@@ -336,11 +336,6 @@ let levelProgress = 0;
 let enemiesDefeated = 0;
 let lastMoveSoundTime = 0;
 
-// Touch control variables
-let touchStartX = 0;
-let touchStartY = 0;
-let touchActive = false;
-let shootTouchActive = false;
 let isMobile = false;
 
 // Audio settings
@@ -715,186 +710,6 @@ function detectMobile() {
     }
 }
 
-// Touch control event listeners
-function setupTouchControls() {
-    const moveControl = document.getElementById('moveControl');
-    const shootControl = document.getElementById('shootControl');
-    
-    // Move control - left side of screen
-    moveControl.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        touchActive = true;
-        const touch = e.touches[0];
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-        moveControl.classList.add('active');
-    });
-    
-    moveControl.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        handleTouchMove(e.touches[0]);
-    });
-    
-    moveControl.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        touchActive = false;
-        moveControl.classList.remove('active');
-    });
-    
-    // Shoot control - right side
-    shootControl.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (!gameRunning || gamePaused) return;
-        shootTouchActive = true;
-        shootControl.classList.add('active');
-        shoot();
-    });
-    
-    shootControl.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        shootTouchActive = false;
-        shootControl.classList.remove('active');
-    });
-    
-    // Auto-shoot while holding shoot button
-    setInterval(() => {
-        if (shootTouchActive && gameRunning && !gamePaused) {
-            shoot();
-        }
-    }, 200);
-}
-
-// Handle touch movement for player
-function handleTouchMove(touch) {
-    if (!touchActive || !gameRunning || gamePaused) return;
-    
-    const rect = canvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-    
-    // Calculate delta from last position
-    const deltaX = touch.clientX - lastTouchX;
-    const deltaY = touch.clientY - lastTouchY;
-    
-    // Move player
-    player.x += deltaX * 1.5;
-    player.y += deltaY * 1.5;
-    
-    // Keep player in bounds
-    player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-    player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
-    
-    lastTouchX = touch.clientX;
-    lastTouchY = touch.clientY;
-}
-
-// Canvas touch events for direct control - anywhere on canvas
-canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    if (!gameRunning || gamePaused) return;
-    
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-    
-    // Convert touch to game coordinates
-    const gameX = touchX * (canvas.width / rect.width);
-    const gameY = touchY * (canvas.height / rect.height);
-    
-    // Check if touch is on left side (movement) or right side (shooting)
-    if (touchX < rect.width / 2) {
-        // Left side - start movement
-        touchActive = true;
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-    } else {
-        // Right side - touch to kill
-        shootAtTarget(gameX, gameY);
-    }
-    
-    // Always update aim direction
-    mouseX = gameX;
-    mouseY = gameY;
-});
-
-canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    if (!gameRunning || gamePaused) return;
-    
-    const touch = e.touches[0];
-    const rect = canvas.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-    
-    // Handle movement if touching left side
-    if (touchActive) {
-        handleTouchMove(touch);
-    }
-    
-    // Always update aim direction
-    mouseX = touchX * (canvas.width / rect.width);
-    mouseY = touchY * (canvas.height / rect.height);
-});
-
-canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    touchActive = false;
-    shootTouchActive = false;
-});
-
-// Touch-to-kill shooting function for mobile
-function shootAtTarget(targetX, targetY) {
-    if (gamePaused) return;
-    
-    const now = Date.now();
-    if (now - lastShotTime < currentWeapon.fireRate) return;
-    
-    lastShotTime = now;
-    playSound('shoot');
-    
-    // Find the closest enemy to the touch position
-    let closestEnemy = null;
-    let closestDistance = Infinity;
-    
-    enemies.forEach(enemy => {
-        const distance = Math.sqrt(Math.pow(enemy.x - targetX, 2) + Math.pow(enemy.y - targetY, 2));
-        if (distance < closestDistance && distance < enemy.radius + 50) { // 50px touch tolerance
-            closestDistance = distance;
-            closestEnemy = enemy;
-        }
-    });
-    
-    if (closestEnemy) {
-        // Create bullet that directly targets and hits the enemy
-        const angle = Math.atan2(closestEnemy.y - player.y, closestEnemy.x - player.x);
-        bullets.push(new Bullet(player.x, player.y, angle));
-        
-        // Instant hit for mobile (touch-to-kill)
-        closestEnemy.takeDamage(currentWeapon.damage);
-        if (closestEnemy.health <= 0) {
-            enemies = enemies.filter(e => e !== closestEnemy);
-            playSound('targetHit');
-            
-            // Create explosion particles
-            for (let i = 0; i < 20; i++) {
-                const angle = (Math.PI * 2 * i) / 20;
-                const velocity = {
-                    x: Math.cos(angle) * Math.random() * 8,
-                    y: Math.sin(angle) * Math.random() * 8
-                };
-                particles.push(new Particle(closestEnemy.x, closestEnemy.y, closestEnemy.color, velocity));
-            }
-        }
-    } else {
-        // Regular shooting if no enemy targeted
-        const angle = Math.atan2(targetY - player.y, targetX - player.x);
-        bullets.push(new Bullet(player.x, player.y, angle));
-    }
-}
-
 function shoot() {
     if (gamePaused) return;
     
@@ -1260,6 +1075,10 @@ function gameLoop() {
 }
 
 function startGame() {
+    if (isMobile) {
+        return;
+    }
+    
     gameRunning = true;
     gamePaused = false;
     autoPlay = false;
@@ -1269,11 +1088,8 @@ function startGame() {
     enemiesDefeated = 0;
     currentWeapon = WEAPONS.BASIC;
     
-    // Initialize mobile detection and touch controls
+    // Initialize mobile detection
     detectMobile();
-    if (isMobile) {
-        setupTouchControls();
-    }
     
     player = new Player();
     bullets = [];
@@ -1388,10 +1204,8 @@ window.addEventListener('resize', () => {
 window.addEventListener('load', () => {
     detectMobile();
     if (isMobile) {
-        // Don't allow play on mobile - show message only
-        document.getElementById('instructions').textContent = 'Mobile version coming soon! 📱';
+        document.getElementById('instructions').textContent = 'Mobile not available - please use desktop';
     } else {
-        setupTouchControls();
         document.getElementById('instructions').textContent = 'WASD/Arrows to move • Mouse to aim • Click to shoot';
     }
 });

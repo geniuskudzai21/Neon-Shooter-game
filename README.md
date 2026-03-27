@@ -61,16 +61,10 @@ Neon Shooter is an action-packed arcade game where you control a glowing spacesh
 - **Web Audio API** - Dynamic sound synthesis and effects
 
 ### Audio System
-- **Procedural Sound Generation** - All sounds created programmatically
+- **Procedural Sound Generation** - Some sounds created programmatically
 - **Multi-layered Synthesis** - Realistic gunshot and explosion effects
 - **Background Music** - MP3 audio with loop and volume controls
 - **Browser Compatibility** - Handles autoplay restrictions gracefully
-
-### Mobile Features
-- **Touch Events** - Full touch control support
-- **Responsive Design** - Adapts to all screen sizes
-- **Tap-to-Kill Mechanics** - Instant enemy destruction on touch
-- **Performance Optimization** - Smooth gameplay on mobile devices
 
 ### Data Persistence
 - **LocalStorage** - High scores and settings persistence
@@ -84,27 +78,6 @@ Neon Shooter is an action-packed arcade game where you control a glowing spacesh
 - JavaScript enabled
 - Audio output for full experience
 
-### Installation
-1. Download the game files
-2. Ensure all files are in the same directory:
-   - `index.html`
-   - `script.js`
-   - `style.css`
-   - `openmindaudio-cartoon-background-music-modern-path-short-preview-short-preview-497396.mp3`
-3. Open `index.html` in your web browser
 
-### Local Development
-For development with a local server:
-```bash
-# Using Python
-python -m http.server 8000
-
-# Using Node.js
-npx serve .
-
-# Then visit http://localhost:8000
-```
-
----
 
 **Enjoy playing Neon Shooter! 🚀**
