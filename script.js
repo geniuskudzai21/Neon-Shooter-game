@@ -12,6 +12,8 @@ canvas.height = CANVAS_HEIGHT;
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
+    if (!soundEnabled) return;
+    
     // Resume audio context if suspended (required by some browsers)
     if (audioContext.state === 'suspended') {
         audioContext.resume();
@@ -22,6 +24,9 @@ function playSound(type) {
     
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
+    
+    // Apply volume settings
+    const finalVolume = masterVolume * sfxVolume;
     
     switch(type) {
         case 'shoot':
@@ -38,8 +43,8 @@ function playSound(type) {
             crackFilter.frequency.setValueAtTime(1000, audioContext.currentTime);
             crackFilter.Q.setValueAtTime(5, audioContext.currentTime);
             
-            crackGain.gain.setValueAtTime(0.4, audioContext.currentTime);
-            crackGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+            crackGain.gain.setValueAtTime(0.4 * finalVolume, audioContext.currentTime);
+            crackGain.gain.exponentialRampToValueAtTime(0.01 * finalVolume, audioContext.currentTime + 0.05);
             
             crack.connect(crackFilter);
             crackFilter.connect(crackGain);
@@ -214,6 +219,112 @@ function playSound(type) {
     }
 }
 
+// Music system functions
+function startBackgroundMusic() {
+    if (!musicEnabled || musicOscillator) return;
+    
+    musicOscillator = audioContext.createOscillator();
+    musicGainNode = audioContext.createGain();
+    musicLfo = audioContext.createOscillator();
+    const lfoGain = audioContext.createGain();
+    
+    // Create a simple synth melody
+    musicOscillator.type = 'sine';
+    musicOscillator.frequency.setValueAtTime(110, audioContext.currentTime); // A2 note
+    
+    // LFO for vibrato effect
+    musicLfo.type = 'sine';
+    musicLfo.frequency.setValueAtTime(5, audioContext.currentTime); // 5Hz vibrato
+    lfoGain.gain.setValueAtTime(10, audioContext.currentTime); // 10Hz modulation depth
+    
+    musicLfo.connect(lfoGain);
+    lfoGain.connect(musicOscillator.frequency);
+    
+    musicOscillator.connect(musicGainNode);
+    musicGainNode.connect(audioContext.destination);
+    
+    musicGainNode.gain.setValueAtTime(musicVolume * masterVolume * 0.1, audioContext.currentTime);
+    
+    musicOscillator.start();
+    musicLfo.start();
+}
+
+function stopBackgroundMusic() {
+    if (musicOscillator) {
+        musicGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        setTimeout(() => {
+            if (musicOscillator) {
+                musicOscillator.stop();
+                musicLfo.stop();
+                musicOscillator = null;
+                musicLfo = null;
+                musicGainNode = null;
+            }
+        }, 500);
+    }
+}
+
+function updateMusicVolume() {
+    if (musicGainNode) {
+        musicGainNode.gain.setValueAtTime(musicVolume * masterVolume * 0.1, audioContext.currentTime);
+    }
+}
+
+// Settings management
+function loadSettings() {
+    const saved = localStorage.getItem('neonShooterSettings');
+    if (saved) {
+        const settings = JSON.parse(saved);
+        masterVolume = settings.masterVolume || 0.5;
+        sfxVolume = settings.sfxVolume || 0.5;
+        musicVolume = settings.musicVolume || 0.3;
+        soundEnabled = settings.soundEnabled !== undefined ? settings.soundEnabled : true;
+        musicEnabled = settings.musicEnabled !== undefined ? settings.musicEnabled : true;
+        
+        // Update UI
+        document.getElementById('masterVolume').value = masterVolume * 100;
+        document.getElementById('sfxVolume').value = sfxVolume * 100;
+        document.getElementById('musicVolume').value = musicVolume * 100;
+        document.getElementById('masterVolumeValue').textContent = Math.round(masterVolume * 100) + '%';
+        document.getElementById('sfxVolumeValue').textContent = Math.round(sfxVolume * 100) + '%';
+        document.getElementById('musicVolumeValue').textContent = Math.round(musicVolume * 100) + '%';
+        document.getElementById('soundEnabled').checked = soundEnabled;
+        document.getElementById('musicEnabled').checked = musicEnabled;
+    }
+}
+
+function saveSettings() {
+    const settings = {
+        masterVolume,
+        sfxVolume,
+        musicVolume,
+        soundEnabled,
+        musicEnabled
+    };
+    localStorage.setItem('neonShooterSettings', JSON.stringify(settings));
+}
+
+function resetSettings() {
+    masterVolume = 0.5;
+    sfxVolume = 0.5;
+    musicVolume = 0.3;
+    soundEnabled = true;
+    musicEnabled = true;
+    
+    // Update UI
+    document.getElementById('masterVolume').value = 50;
+    document.getElementById('sfxVolume').value = 50;
+    document.getElementById('musicVolume').value = 30;
+    document.getElementById('masterVolumeValue').textContent = '50%';
+    document.getElementById('sfxVolumeValue').textContent = '50%';
+    document.getElementById('musicVolumeValue').textContent = '30%';
+    document.getElementById('soundEnabled').checked = true;
+    document.getElementById('musicEnabled').checked = true;
+    
+    saveSettings();
+    updateMusicVolume();
+}
+
 let gameRunning = false;
 let gamePaused = false;
 let autoPlay = false;
@@ -227,6 +338,18 @@ let backgroundOffset = 0;
 let levelProgress = 0;
 let enemiesDefeated = 0;
 let lastMoveSoundTime = 0;
+
+// Audio settings
+let masterVolume = 0.5;
+let sfxVolume = 0.5;
+let musicVolume = 0.3;
+let soundEnabled = true;
+let musicEnabled = true;
+
+// Music system
+let musicOscillator = null;
+let musicGainNode = null;
+let musicLfo = null;
 
 const WEAPONS = {
     BASIC: { fireRate: 250, spread: 0, damage: 2, color: '#00ffff' },
@@ -955,11 +1078,18 @@ function startGame() {
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('gameOver').classList.add('hidden');
     
+    // Load settings and start music
+    loadSettings();
+    if (musicEnabled) {
+        startBackgroundMusic();
+    }
+    
     gameLoop();
 }
 
 function gameOver() {
     gameRunning = false;
+    stopBackgroundMusic();
     
     if (score > highScore) {
         highScore = score;
@@ -989,6 +1119,50 @@ document.getElementById('pauseBtn').addEventListener('click', () => {
 document.getElementById('autoPlayBtn').addEventListener('click', () => {
     playSound('click');
     toggleAutoPlay();
+});
+document.getElementById('settingsBtn').addEventListener('click', () => {
+    playSound('click');
+    document.getElementById('settingsModal').classList.remove('hidden');
+});
+document.getElementById('closeSettings').addEventListener('click', () => {
+    playSound('click');
+    document.getElementById('settingsModal').classList.add('hidden');
+    saveSettings();
+});
+document.getElementById('resetSettings').addEventListener('click', () => {
+    playSound('click');
+    resetSettings();
+});
+
+// Volume control listeners
+document.getElementById('masterVolume').addEventListener('input', (e) => {
+    masterVolume = e.target.value / 100;
+    document.getElementById('masterVolumeValue').textContent = e.target.value + '%';
+    updateMusicVolume();
+});
+
+document.getElementById('sfxVolume').addEventListener('input', (e) => {
+    sfxVolume = e.target.value / 100;
+    document.getElementById('sfxVolumeValue').textContent = e.target.value + '%';
+});
+
+document.getElementById('musicVolume').addEventListener('input', (e) => {
+    musicVolume = e.target.value / 100;
+    document.getElementById('musicVolumeValue').textContent = e.target.value + '%';
+    updateMusicVolume();
+});
+
+document.getElementById('soundEnabled').addEventListener('change', (e) => {
+    soundEnabled = e.target.checked;
+});
+
+document.getElementById('musicEnabled').addEventListener('change', (e) => {
+    musicEnabled = e.target.checked;
+    if (musicEnabled) {
+        startBackgroundMusic();
+    } else {
+        stopBackgroundMusic();
+    }
 });
 
 // Also initialize audio on any click to ensure it's active
