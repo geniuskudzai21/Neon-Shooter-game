@@ -508,7 +508,8 @@ body.mobile .touch-control::after {
     width: 130px;
     height: 130px;
     bottom: 60px;
-    left: 30px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 #shootControl {
