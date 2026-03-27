@@ -792,6 +792,10 @@ canvas.addEventListener('touchstart', (e) => {
     const touchX = touch.clientX - rect.left;
     const touchY = touch.clientY - rect.top;
     
+    // Convert touch to game coordinates
+    const gameX = touchX * (canvas.width / rect.width);
+    const gameY = touchY * (canvas.height / rect.height);
+    
     // Check if touch is on left side (movement) or right side (shooting)
     if (touchX < rect.width / 2) {
         // Left side - start movement
@@ -799,13 +803,13 @@ canvas.addEventListener('touchstart', (e) => {
         lastTouchX = touch.clientX;
         lastTouchY = touch.clientY;
     } else {
-        // Right side - shoot
-        shoot();
+        // Right side - touch to kill
+        shootAtTarget(gameX, gameY);
     }
     
-    // Update aim direction
-    mouseX = touchX * (canvas.width / rect.width);
-    mouseY = touchY * (canvas.height / rect.height);
+    // Always update aim direction
+    mouseX = gameX;
+    mouseY = gameY;
 });
 
 canvas.addEventListener('touchmove', (e) => {
@@ -832,6 +836,56 @@ canvas.addEventListener('touchend', (e) => {
     touchActive = false;
     shootTouchActive = false;
 });
+
+// Touch-to-kill shooting function for mobile
+function shootAtTarget(targetX, targetY) {
+    if (gamePaused) return;
+    
+    const now = Date.now();
+    if (now - lastShotTime < currentWeapon.fireRate) return;
+    
+    lastShotTime = now;
+    playSound('shoot');
+    
+    // Find the closest enemy to the touch position
+    let closestEnemy = null;
+    let closestDistance = Infinity;
+    
+    enemies.forEach(enemy => {
+        const distance = Math.sqrt(Math.pow(enemy.x - targetX, 2) + Math.pow(enemy.y - targetY, 2));
+        if (distance < closestDistance && distance < enemy.radius + 50) { // 50px touch tolerance
+            closestDistance = distance;
+            closestEnemy = enemy;
+        }
+    });
+    
+    if (closestEnemy) {
+        // Create bullet that directly targets and hits the enemy
+        const angle = Math.atan2(closestEnemy.y - player.y, closestEnemy.x - player.x);
+        bullets.push(new Bullet(player.x, player.y, angle));
+        
+        // Instant hit for mobile (touch-to-kill)
+        closestEnemy.takeDamage(currentWeapon.damage);
+        if (closestEnemy.health <= 0) {
+            enemies = enemies.filter(e => e !== closestEnemy);
+            playSound('targetHit');
+            
+            // Create explosion particles
+            for (let i = 0; i < 20; i++) {
+                const angle = (Math.PI * 2 * i) / 20;
+                const velocity = {
+                    x: Math.cos(angle) * Math.random() * 8,
+                    y: Math.sin(angle) * Math.random() * 8
+                };
+                particles.push(new Particle(closestEnemy.x, closestEnemy.y, closestEnemy.color, velocity));
+            }
+        }
+    } else {
+        // Regular shooting if no enemy targeted
+        const angle = Math.atan2(targetY - player.y, targetX - player.x);
+        bullets.push(new Bullet(player.x, player.y, angle));
+    }
+}
 
 function shoot() {
     if (gamePaused) return;

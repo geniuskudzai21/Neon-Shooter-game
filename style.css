@@ -519,6 +519,7 @@ body.mobile .touch-control::after {
     right: 30px;
     background: rgba(255, 0, 100, 0.15);
     border-color: rgba(255, 0, 100, 0.5);
+    display: none; /* Hide shoot control on mobile - use tap-to-shoot */
 }
 
 #shootControl::after {
