@@ -702,8 +702,16 @@ function detectMobile() {
     
     if (isMobile) {
         document.body.classList.add('mobile');
+        // Initially hide game elements and show mobile message
+        if (document.getElementById('gameCanvas').style.display !== 'block') {
+            document.getElementById('gameCanvas').style.display = 'none';
+            document.getElementById('mobileMessage').classList.remove('hidden');
+        }
     } else {
         document.body.classList.remove('mobile');
+        // Show game elements and hide mobile message
+        document.getElementById('gameCanvas').style.display = 'block';
+        document.getElementById('mobileMessage').classList.add('hidden');
     }
 }
 
@@ -1380,8 +1388,19 @@ window.addEventListener('resize', () => {
 window.addEventListener('load', () => {
     detectMobile();
     if (isMobile) {
+        // Setup mobile play button
+        document.getElementById('mobilePlayBtn').addEventListener('click', () => {
+            playSound('click');
+            // Hide mobile message and show game
+            document.getElementById('mobileMessage').classList.add('hidden');
+            document.getElementById('gameCanvas').style.display = 'block';
+            setupTouchControls();
+            startGame();
+        });
+        document.getElementById('instructions').textContent = 'Experience Neon Shooter on mobile! 📱';
+    } else {
         setupTouchControls();
-        document.getElementById('instructions').textContent = 'Drag left to move • Tap right to shoot';
+        document.getElementById('instructions').textContent = 'WASD/Arrows to move • Mouse to aim • Click to shoot';
     }
 });
 

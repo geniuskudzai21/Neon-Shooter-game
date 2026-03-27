@@ -346,6 +346,29 @@ button:hover {
         padding: 10px;
     }
     
+    /* Hide game elements and show mobile message */
+    #gameCanvas {
+        display: none;
+    }
+    
+    .mobile-message {
+        display: flex;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: #00ffff;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        text-shadow: 0 0 20px #00ffff;
+        border: 2px solid #00ffff;
+        z-index: 20;
+    }
+    
     .score-display, .health-display, .high-score-display, .level-display {
         position: absolute;
         color: #00ffff;
@@ -510,6 +533,7 @@ body.mobile .touch-control::after {
     bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
+    margin-top: 5px;
 }
 
 #shootControl {
