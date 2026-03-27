@@ -1,13 +1,20 @@
-const CANVAS_WIDTH = window.innerWidth;
-const CANVAS_HEIGHT = window.innerHeight;
+let CANVAS_WIDTH = window.innerWidth;
+let CANVAS_HEIGHT = window.innerHeight;
 const PLAYER_SPEED = 5;
 const BULLET_SPEED = 10;
 const ENEMY_BASE_SPEED = 1;
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+
+function resizeCanvas() {
+    CANVAS_WIDTH = window.innerWidth;
+    CANVAS_HEIGHT = window.innerHeight;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+}
+
+resizeCanvas();
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -651,10 +658,16 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Mobile detection
+// Mobile detection and responsive setup
 function detectMobile() {
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                window.innerWidth <= 768;
+    
+    if (isMobile) {
+        document.body.classList.add('mobile');
+    } else {
+        document.body.classList.remove('mobile');
+    }
 }
 
 // Touch control event listeners
@@ -662,38 +675,21 @@ function setupTouchControls() {
     const moveControl = document.getElementById('moveControl');
     const shootControl = document.getElementById('shootControl');
     
-    // Move control
+    // Move control - left side of screen
     moveControl.addEventListener('touchstart', (e) => {
         e.preventDefault();
         touchActive = true;
         const touch = e.touches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
         moveControl.classList.add('active');
     });
     
     moveControl.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if (!touchActive || !gameRunning || gamePaused) return;
-        
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - touchStartX;
-        const deltaY = touch.clientY - touchStartY;
-        
-        // Move player based on touch drag
-        player.x += deltaX * 0.5;
-        player.y += deltaY * 0.5;
-        
-        // Keep player in bounds
-        player.x = Math.max(player.radius, Math.min(CANVAS_WIDTH - player.radius, player.x));
-        player.y = Math.max(player.radius, Math.min(CANVAS_HEIGHT - player.radius, player.y));
-        
-        // Update mouse position for shooting direction
-        mouseX = player.x + deltaX * 2;
-        mouseY = player.y + deltaY * 2;
-        
-        touchStartX = touch.clientX;
-        touchStartY = touch.clientY;
+        handleTouchMove(e.touches[0]);
     });
     
     moveControl.addEventListener('touchend', (e) => {
@@ -702,7 +698,7 @@ function setupTouchControls() {
         moveControl.classList.remove('active');
     });
     
-    // Shoot control
+    // Shoot control - right side
     shootControl.addEventListener('touchstart', (e) => {
         e.preventDefault();
         if (!gameRunning || gamePaused) return;
@@ -725,7 +721,31 @@ function setupTouchControls() {
     }, 200);
 }
 
-// Canvas touch events for direct control
+// Handle touch movement for player
+function handleTouchMove(touch) {
+    if (!touchActive || !gameRunning || gamePaused) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Calculate delta from last position
+    const deltaX = touch.clientX - lastTouchX;
+    const deltaY = touch.clientY - lastTouchY;
+    
+    // Move player
+    player.x += deltaX * 1.5;
+    player.y += deltaY * 1.5;
+    
+    // Keep player in bounds
+    player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+    
+    lastTouchX = touch.clientX;
+    lastTouchY = touch.clientY;
+}
+
+// Canvas touch events for direct control - anywhere on canvas
 canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (!gameRunning || gamePaused) return;
@@ -735,9 +755,20 @@ canvas.addEventListener('touchstart', (e) => {
     const touchX = touch.clientX - rect.left;
     const touchY = touch.clientY - rect.top;
     
-    // Update mouse position for shooting direction
-    mouseX = touchX * (CANVAS_WIDTH / rect.width);
-    mouseY = touchY * (CANVAS_HEIGHT / rect.height);
+    // Check if touch is on left side (movement) or right side (shooting)
+    if (touchX < rect.width / 2) {
+        // Left side - start movement
+        touchActive = true;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+    } else {
+        // Right side - shoot
+        shoot();
+    }
+    
+    // Update aim direction
+    mouseX = touchX * (canvas.width / rect.width);
+    mouseY = touchY * (canvas.height / rect.height);
 });
 
 canvas.addEventListener('touchmove', (e) => {
@@ -749,13 +780,20 @@ canvas.addEventListener('touchmove', (e) => {
     const touchX = touch.clientX - rect.left;
     const touchY = touch.clientY - rect.top;
     
-    // Update mouse position for shooting direction
-    mouseX = touchX * (CANVAS_WIDTH / rect.width);
-    mouseY = touchY * (CANVAS_HEIGHT / rect.height);
+    // Handle movement if touching left side
+    if (touchActive) {
+        handleTouchMove(touch);
+    }
+    
+    // Always update aim direction
+    mouseX = touchX * (canvas.width / rect.width);
+    mouseY = touchY * (canvas.height / rect.height);
 });
 
 canvas.addEventListener('touchend', (e) => {
     e.preventDefault();
+    touchActive = false;
+    shootTouchActive = false;
 });
 
 function shoot() {
@@ -1233,18 +1271,16 @@ document.addEventListener('click', () => {
 }, { once: true });
 
 window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // Update canvas dimensions for responsive gameplay
-    if (window.innerWidth < 768) {
-        // Mobile - adjust game area
-        const scale = Math.min(window.innerWidth / CANVAS_WIDTH, window.innerHeight / CANVAS_HEIGHT);
-        // Keep original game logic but scale display
-    }
-    
-    // Re-detect mobile on resize
+    resizeCanvas();
     detectMobile();
+});
+
+window.addEventListener('load', () => {
+    detectMobile();
+    if (isMobile) {
+        setupTouchControls();
+        document.getElementById('instructions').textContent = 'Drag left to move • Tap right to shoot';
+    }
 });
 
 document.getElementById('highScore').textContent = highScore;
