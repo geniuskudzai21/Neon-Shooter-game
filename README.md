@@ -71,7 +71,9 @@ Neon Shooter is an action-packed arcade game where you control a glowing spacesh
 - **Settings Management** - Volume controls and audio preferences
 - **Cross-session** - Settings remembered between sessions
 
-## 🚀 Getting Started
+## Visit and have fun
+
+https://neon-shooter-game.vercel.app/
 
 ### Requirements
 - Modern web browser (Chrome, Firefox, Safari, Edge)
