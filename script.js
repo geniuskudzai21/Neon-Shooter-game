@@ -219,56 +219,12 @@ function playSound(type) {
     }
 }
 
-// Music system functions
-function startBackgroundMusic() {
-    if (!musicEnabled || musicOscillator) return;
-    
-    musicOscillator = audioContext.createOscillator();
-    musicGainNode = audioContext.createGain();
-    musicLfo = audioContext.createOscillator();
-    const lfoGain = audioContext.createGain();
-    
-    // Create a simple synth melody
-    musicOscillator.type = 'sine';
-    musicOscillator.frequency.setValueAtTime(110, audioContext.currentTime); // A2 note
-    
-    // LFO for vibrato effect
-    musicLfo.type = 'sine';
-    musicLfo.frequency.setValueAtTime(5, audioContext.currentTime); // 5Hz vibrato
-    lfoGain.gain.setValueAtTime(10, audioContext.currentTime); // 10Hz modulation depth
-    
-    musicLfo.connect(lfoGain);
-    lfoGain.connect(musicOscillator.frequency);
-    
-    musicOscillator.connect(musicGainNode);
-    musicGainNode.connect(audioContext.destination);
-    
-    musicGainNode.gain.setValueAtTime(musicVolume * masterVolume * 0.1, audioContext.currentTime);
-    
-    musicOscillator.start();
-    musicLfo.start();
-}
+// Music system functions - disabled
+let musicCurrentVolume = 0.3;
 
-function stopBackgroundMusic() {
-    if (musicOscillator) {
-        musicGainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-        setTimeout(() => {
-            if (musicOscillator) {
-                musicOscillator.stop();
-                musicLfo.stop();
-                musicOscillator = null;
-                musicLfo = null;
-                musicGainNode = null;
-            }
-        }, 500);
-    }
-}
-
-function updateMusicVolume() {
-    if (musicGainNode) {
-        musicGainNode.gain.setValueAtTime(musicVolume * masterVolume * 0.1, audioContext.currentTime);
-    }
-}
+function startBackgroundMusic() { return; }
+function stopBackgroundMusic() { return; }
+function updateMusicVolume() { return; }
 
 // Settings management
 function loadSettings() {
@@ -347,9 +303,8 @@ let soundEnabled = true;
 let musicEnabled = true;
 
 // Music system
-let musicOscillator = null;
-let musicGainNode = null;
-let musicLfo = null;
+let musicNodes = [];
+let musicCurrentVolume = 0.3;
 
 const WEAPONS = {
     BASIC: { fireRate: 250, spread: 0, damage: 2, color: '#00ffff' },
@@ -773,11 +728,7 @@ function handleMovement() {
             player.velocity.y *= 0.707;
         }
         
-        // Play movement sound with timing control
-        if ((player.velocity.x !== 0 || player.velocity.y !== 0) && Date.now() - lastMoveSoundTime > 200) {
-            playSound('move');
-            lastMoveSoundTime = Date.now();
-        }
+
     }
 }
 
@@ -1122,12 +1073,19 @@ document.getElementById('autoPlayBtn').addEventListener('click', () => {
 });
 document.getElementById('settingsBtn').addEventListener('click', () => {
     playSound('click');
+    stopBackgroundMusic();
+    if (gameRunning && !gamePaused) {
+        togglePause();
+    }
     document.getElementById('settingsModal').classList.remove('hidden');
 });
 document.getElementById('closeSettings').addEventListener('click', () => {
     playSound('click');
     document.getElementById('settingsModal').classList.add('hidden');
     saveSettings();
+    if (gameRunning && !gamePaused && musicEnabled) {
+        startBackgroundMusic();
+    }
 });
 document.getElementById('resetSettings').addEventListener('click', () => {
     playSound('click');
