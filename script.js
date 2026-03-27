@@ -9,6 +9,63 @@ const ctx = canvas.getContext('2d');
 canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    switch(type) {
+        case 'shoot':
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+            break;
+            
+        case 'hit':
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.2);
+            gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+            break;
+            
+        case 'targetHit':
+            oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.15);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.15);
+            break;
+            
+        case 'targetMiss':
+            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.3);
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+            break;
+            
+        case 'click':
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.05);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+            break;
+    }
+}
+
 let gameRunning = false;
 let gamePaused = false;
 let autoPlay = false;
@@ -127,6 +184,7 @@ class Player {
     takeDamage(amount) {
         this.health -= amount;
         screenShake = 10;
+        playSound('hit');
         
         for (let i = 0; i < 10; i++) {
             const angle = (Math.PI * 2 * i) / 10;
@@ -369,6 +427,7 @@ function shoot() {
     if (now - lastShotTime < currentWeapon.fireRate) return;
     
     lastShotTime = now;
+    playSound('shoot');
     
     if (currentWeapon === WEAPONS.SPREAD) {
         for (let i = -1; i <= 1; i++) {
@@ -752,10 +811,22 @@ function gameOver() {
     document.getElementById('gameOver').classList.remove('hidden');
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
-document.getElementById('pauseBtn').addEventListener('click', togglePause);
-document.getElementById('autoPlayBtn').addEventListener('click', toggleAutoPlay);
+document.getElementById('startBtn').addEventListener('click', () => {
+    playSound('click');
+    startGame();
+});
+document.getElementById('restartBtn').addEventListener('click', () => {
+    playSound('click');
+    startGame();
+});
+document.getElementById('pauseBtn').addEventListener('click', () => {
+    playSound('click');
+    togglePause();
+});
+document.getElementById('autoPlayBtn').addEventListener('click', () => {
+    playSound('click');
+    toggleAutoPlay();
+});
 
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
