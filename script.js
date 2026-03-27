@@ -12,6 +12,11 @@ canvas.height = CANVAS_HEIGHT;
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
+    // Resume audio context if suspended (required by some browsers)
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+    
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -189,6 +194,15 @@ function playSound(type) {
             oscillator.stop(audioContext.currentTime + 0.3);
             break;
             
+        case 'move':
+            oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.08);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.08);
+            break;
+            
         case 'click':
             oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.05);
@@ -212,6 +226,7 @@ let screenShake = 0;
 let backgroundOffset = 0;
 let levelProgress = 0;
 let enemiesDefeated = 0;
+let lastMoveSoundTime = 0;
 
 const WEAPONS = {
     BASIC: { fireRate: 250, spread: 0, damage: 2, color: '#00ffff' },
@@ -634,6 +649,12 @@ function handleMovement() {
             player.velocity.x *= 0.707;
             player.velocity.y *= 0.707;
         }
+        
+        // Play movement sound with timing control
+        if ((player.velocity.x !== 0 || player.velocity.y !== 0) && Date.now() - lastMoveSoundTime > 200) {
+            playSound('move');
+            lastMoveSoundTime = Date.now();
+        }
     }
 }
 
@@ -950,6 +971,10 @@ function gameOver() {
 }
 
 document.getElementById('startBtn').addEventListener('click', () => {
+    // Initialize audio context on first user interaction
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
     playSound('click');
     startGame();
 });
@@ -965,6 +990,13 @@ document.getElementById('autoPlayBtn').addEventListener('click', () => {
     playSound('click');
     toggleAutoPlay();
 });
+
+// Also initialize audio on any click to ensure it's active
+document.addEventListener('click', () => {
+    if (audioContext.state === 'suspended') {
+        audioContext.resume();
+    }
+}, { once: true });
 
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
