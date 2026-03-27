@@ -342,7 +342,6 @@ button:hover {
         gap: 5px;
     }
     
-@media (max-width: 768px) {
     .ui-overlay {
         padding: 10px;
     }
