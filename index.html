@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Shooter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="ui-overlay">
+            <div class="score-display">
+                <div class="score-label">SCORE</div>
+                <div id="score">0</div>
+            </div>
+            <div class="level-display">
+                <div class="level-label">LEVEL</div>
+                <div id="level">1</div>
+            </div>
+            <div class="health-display">
+                <div class="health-label">HEALTH</div>
+                <div id="health">100</div>
+            </div>
+            <div class="high-score-display">
+                <div class="high-score-label">HIGH SCORE</div>
+                <div id="highScore">0</div>
+            </div>
+            <div class="controls">
+                <button id="pauseBtn" class="control-btn">PAUSE</button>
+                <button id="autoPlayBtn" class="control-btn">AUTO-PLAY</button>
+            </div>
+        </div>
+        <div id="gameOver" class="game-over hidden">
+            <div class="game-over-content">
+                <h2>GAME OVER</h2>
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <button id="restartBtn">RESTART</button>
+            </div>
+        </div>
+        <div id="startScreen" class="start-screen">
+            <div class="start-content">
+                <h1>NEON SHOOTER</h1>
+                <p>WASD/Arrows to move • Mouse to aim • Click to shoot</p>
+                <button id="startBtn">START GAME</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
